@@ -1,0 +1,12 @@
+node_modules/
+.wrangler/
+.dev.vars
+wrangler.toml.local
+*.log
+.DS_Store
+dist/
+.env
+
+# 本地配置文件（包含敏感信息）
+wrangler.toml.local
+.wrangler/

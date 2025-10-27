@@ -1,0 +1,11 @@
+name = "bus-notice-watcher"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "NOTICES_KV"
+id = "2d993291b5a041249e6b4860f31a2558"
+
+# 定时任务 - 每小时执行一次
+[triggers]
+crons = ["0 * * * *"]
