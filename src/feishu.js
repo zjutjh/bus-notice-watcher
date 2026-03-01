@@ -5,7 +5,7 @@
 /**
  * 发送飞书通知
  */
-export async function sendFeishuNotification(env, notices) {
+export async function sendFeishuNotification(env, changes) {
     const webhookUrl = env.FEISHU_WEBHOOK_URL;
 
     if (!webhookUrl || webhookUrl.includes('your-webhook-key')) {
@@ -13,15 +13,33 @@ export async function sendFeishuNotification(env, notices) {
         return;
     }
 
-    // 构建通知内容
-    let content = '🚌 **浙工大班车通知更新**\n\n';
-    content += `发现 ${notices.length} 条新通知：\n\n`;
+    const added = changes?.added || [];
+    const updated = changes?.updated || [];
+    const changeCount = added.length + updated.length;
 
-    for (const notice of notices) {
-        content += `📌 [${notice.title}](${notice.href})\n\n`;
+    let content = '🚌 班车通知第一页发生变更\n\n';
+    content += `变更总数：${changeCount}\n`;
+    content += `新增：${added.length}，更新：${updated.length}\n\n`;
+
+    const maxDetails = 8;
+    const lines = [];
+
+    for (const item of added.slice(0, maxDetails)) {
+        lines.push(`+ ${item.title} (${item.date || '未知日期'})`);
+        lines.push(item.href);
     }
 
-    content += `\n⏰ 检查时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`;
+    for (const item of updated.slice(0, maxDetails)) {
+        const fieldText = item.changedFields.join(', ');
+        lines.push(`~ ${item.after.title} [${fieldText}]`);
+        lines.push(item.href);
+    }
+
+    if (lines.length > 0) {
+        content += `${lines.join('\n')}\n\n`;
+    }
+
+    content += `检查时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`;
 
     const payload = {
         msg_type: 'text',

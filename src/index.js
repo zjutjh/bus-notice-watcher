@@ -27,12 +27,26 @@ export default {
         }
 
         if (url.pathname === '/list') {
-            // 查看已存储的通知列表
             const list = await env.NOTICES_KV.list();
             const keys = list.keys
-                .filter(k => k.name !== CONFIG.STATUS_KEY)
-                .map(k => k.name);
-            return new Response(JSON.stringify(keys, null, 2), {
+                .map(k => k.name)
+                .filter(name => !CONFIG.RESERVED_KEYS.includes(name));
+
+            const results = await Promise.all(keys.map(key => env.NOTICES_KV.get(key)));
+            const parsed = results.map((value, index) => {
+                const key = keys[index];
+                if (!value) {
+                    return { key, value: null };
+                }
+
+                try {
+                    return { key, value: JSON.parse(value) };
+                } catch {
+                    return { key, value };
+                }
+            });
+
+            return new Response(JSON.stringify(parsed, null, 2), {
                 headers: { 'Content-Type': 'application/json; charset=utf-8' }
             });
         }

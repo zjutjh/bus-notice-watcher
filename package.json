@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "浙工大班车通知监控 - Cloudflare Workers",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "test:sync-fixtures": "bash scripts/sync-live-fixtures.sh",
+    "test": "pnpm run test:sync-fixtures && node --test test/*.test.js"
   },
   "keywords": [
     "cloudflare-workers",

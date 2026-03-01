@@ -5,21 +5,46 @@
 import { CONFIG } from './config.js';
 import { sendFeishuError, sendFeishuRecovery } from './feishu.js';
 
+function getDefaultStatus() {
+    return {
+        state: 'success',
+        failureCount: 0,
+        lastSuccessTime: null,
+        lastFailureTime: null
+    };
+}
+
+function parseStatus(statusData) {
+    if (!statusData) {
+        return getDefaultStatus();
+    }
+
+    try {
+        const parsed = JSON.parse(statusData);
+        return {
+            state: parsed.state === 'failed' ? 'failed' : 'success',
+            failureCount: Number.isFinite(parsed.failureCount) ? parsed.failureCount : 0,
+            lastSuccessTime: parsed.lastSuccessTime || null,
+            lastFailureTime: parsed.lastFailureTime || null
+        };
+    } catch {
+        return getDefaultStatus();
+    }
+}
+
 /**
  * 处理成功状态
  */
 export async function handleSuccess(env) {
     const statusData = await env.NOTICES_KV.get(CONFIG.STATUS_KEY);
-    
-    if (statusData) {
-        const status = JSON.parse(statusData);
-        // 如果之前是失败状态，发送恢复通知
-        if (status.state === 'failed') {
-            console.log('服务已恢复，发送恢复通知');
-            await sendFeishuRecovery(env);
-        }
+
+    const status = parseStatus(statusData);
+    // 如果之前是失败状态，发送恢复通知
+    if (status.state === 'failed') {
+        console.log('服务已恢复，发送恢复通知');
+        await sendFeishuRecovery(env);
     }
-    
+
     // 重置为成功状态
     await env.NOTICES_KV.put(CONFIG.STATUS_KEY, JSON.stringify({
         state: 'success',
@@ -33,16 +58,8 @@ export async function handleSuccess(env) {
  */
 export async function handleFailure(env, errorMessage) {
     const statusData = await env.NOTICES_KV.get(CONFIG.STATUS_KEY);
-    
-    let status = {
-        state: 'success',
-        failureCount: 0,
-        lastFailureTime: null
-    };
-    
-    if (statusData) {
-        status = JSON.parse(statusData);
-    }
+
+    const status = parseStatus(statusData);
     
     // 增加失败次数
     status.failureCount += 1;
@@ -66,15 +83,6 @@ export async function handleFailure(env, errorMessage) {
  */
 export async function getStatus(env) {
     const statusData = await env.NOTICES_KV.get(CONFIG.STATUS_KEY);
-    
-    if (!statusData) {
-        return {
-            state: 'success',
-            failureCount: 0,
-            lastSuccessTime: null,
-            lastFailureTime: null
-        };
-    }
-    
-    return JSON.parse(statusData);
+
+    return parseStatus(statusData);
 }
